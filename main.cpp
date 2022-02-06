@@ -74,7 +74,7 @@ int init(void)
     return 0;
 }
 
-int addQso(QString callsign, QDateTime time, QString band, QString mode)
+int addQso(QString callsign, QDateTime time, QString band, QVariant freq, QString mode, QString message)
 {
     log::Qso record;
 
@@ -82,6 +82,8 @@ int addQso(QString callsign, QDateTime time, QString band, QString mode)
     record.timeOnUtc = time;
     record.band = band;
     record.mode = mode;
+    record.freqMhz = freq;
+    record.qsoMsg = message;
 
     if (!log::QsoLog::addQso(record)) {
         qCritical() << "Main Log: Failed to log QSO record!";
@@ -108,11 +110,13 @@ int parseLog(void)
     while (!in.atEnd()) {
         QString line = in.readLine();
         QDateTime date = QDateTime::fromString(line.mid(0, 13), "yyMMdd_hhmmss").addYears(100);
-        QString band = line.mid(14, 9).simplified();
+        QVariant freq = QVariant(line.mid(14, 9).simplified().toDouble());
         QString mode = line.mid(27, 6).simplified();
-        QString text = line.mid(48).simplified();
+        QString message = line.mid(48).simplified();
+        QString callsign = message.split(" ")[1];
+        QString band = freq.toString();
 
-        addQso("OK8RM", date, band, mode);
+        addQso(callsign, date, band, freq, mode, message);
     }
 
     file.close();
@@ -154,5 +158,5 @@ int main(int argc, char *argv[])
     log::QsoLog::destroy();
     adif::AdifEnums::destroy();
 
-    return a.exec();
+    return 0;
 }
